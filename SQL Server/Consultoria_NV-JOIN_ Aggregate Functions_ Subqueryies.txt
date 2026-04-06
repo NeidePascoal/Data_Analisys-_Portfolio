@@ -1,0 +1,94 @@
+--Subqueries Não-Correlacionadas (SNC) 
+--SNC 1. Mostrar o ID, o nome e a idade dos consultores mais velhos. O comando deve usar uma SNC 
+--como operando de um operador relacional, na cláusula WHERE 
+select*from Consultor
+
+SELECT ConsultorID, Nome, Idade
+FROM Consultor
+WHERE Idade IN (SELECT  TOP 5 Idade FROM Consultor ORDER BY Idade DESC)
+ORDER BY Idade DESC;
+____________________________________________________________________________________________________________________________________________________________________________________________
+--SNC 2. Mostrar o ID e o nome dos consultores que não têm alocações. O comando deve usar uma 
+--SNC como operando de uma condição NOT IN, na cláusula WHERE. 
+
+SELECT ConsultorID, Nome
+FROM Consultor
+WHERE ConsultorID NOT IN ( SELECT DISTINCT ConsultorID FROM Alocacao)
+
+____________________________________________________________________________________________________________________________________________________________________________________________
+
+--SNC 3. Mostrar o ID, o nome de cada consultor e a diferença da idade, em valor relativo, face à idade 
+--média de todos os consultores. O resultado deve ser apresentado por ordem decrescente do valor 
+---absoluto da diferença. O comando deve usar uma SNC como coluna, na cláusula SELECT. 
+
+SELECT ConsultorID, Nome,  ABS(idade - (SELECT AVG(idade) FROM Consultor)) AS Diferenca_Idade
+FROM Consultor
+ORDER BY Diferenca_Idade DESC;
+
+____________________________________________________________________________________________________________________________________________________________________________________________
+
+--SNC 4. Mostrar o número total de consultores que foram alocados às empresas com o nome 
+--'CodeWorks' e 'CloudExperts'. O comando deve usar uma SNC como tabela, na cláusula FROM.
+--
+SELECT COUNT(DISTINCT ConsultorID) AS tt_consultores
+FROM (SELECT ConsultorID, EmpresaID FROM Alocação WHERE EmpresaID IN ( SELECT EmpresaID  FROM EmpresaCliente WHERE NomeEmpresa IN ('CodeWorks', 'CloudExperts') )) AS subconsulta;
+
+____________________________________________________________________________________________________________________________________________________________________________________________
+
+--SNC 5. Mostrar as datas com mais alocações de consultores. O comando deve usar uma SNC como 
+---operando de um operador relacional, na cláusula HAVING. 
+select * from  Alocacao
+
+
+SELECT DataInicio, COUNT(*) AS TotalAlocacoes
+FROM Alocacao
+GROUP BY DataInicio
+HAVING COUNT(*) IN (SELECT MAX(Total) FROM (SELECT COUNT(*) AS Total FROM Alocacao GROUP BY DataInicio ) AS Sub);
+
+____________________________________________________________________________________________________________________________________________________________________________________________
+
+--SNC 6. Repetir o exercício 1, mas usando uma SNC como operando de uma condição ALL, na cláusula WHERE
+
+SELECT ConsultorID, Nome, Idade
+FROM Consultor
+WHERE Idade >= ALL (SELECT Idade FROM Consultor);
+____________________________________________________________________________________________________________________________________________________________________________________________
+
+--SNC 7. Mostrar o ID, nome e idade dos consultores que não são os mais velhos, por ordem 
+--decrescente da idade. O comando deve usar uma SNC como operando de uma condição ANY, na cláusula WHERE. 
+
+SELECT ConsultorID, Nome, Idade
+FROM Consultor
+WHERE Idade > =  ANY (SELECT MIN(Idade) FROM Consultor)
+ORDER BY Idade 
+
+____________________________________________________________________________________________________________________________________________________________________________________________
+
+--Grupo 2 – Subqueries Correlacionadas (SC) 
+--SC 1. Mostrar o ID, o nome e o número total de alocações dos consultores, por ordem decrescente 
+--do número total. O comando deve usar uma SC como coluna, na cláusula SELECT
+
+SELECT  c.ConsultorID, c.Nome,(SELECT COUNT(*) FROM Alocacao a WHERE a.ConsultorID = c.ConsultorID) AS TotalAlocacoes
+FROM Consultor c
+ORDER BY TotalAlocacoes DESC;
+
+
+____________________________________________________________________________________________________________________________________________________________________________________________
+
+-- SC 2. Mostrar os IDs dos consultores cujo número total de alocações numa determinada empresa 
+-- seja superior à média de alocações dessa empresa. O resultado deve incluir também o ID da 
+-- empresa e o número total de alocações. O comando deve usar uma SC como operando de um 
+-- operador relacional, na cláusula HAVING. 
+
+
+____________________________________________________________________________________________________________________________________________________________________________________________
+
+--- SC 3. Mostrar o nome dos consultores que foram alocados a todas as empresas com o nome 
+--'DigitalPath'. O comando deve usar uma SC como operando numa condição NOT EXISTS, na cláusula 
+--WHERE. 
+
+SELECT c.Nome
+FROM Consultor c
+WHERE NOT EXISTS
+( SELECT 1 FROM EmpresaCliente e WHERE e.NomeEmpresa = 'DigitalPath' AND NOT EXISTS  
+(  SELECT 1 FROM Alocacao a WHERE a.ConsultorID = c.ConsultorID AND a.EmpresaID = e.EmpresaID ));

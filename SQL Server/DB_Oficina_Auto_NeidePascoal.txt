@@ -1,0 +1,312 @@
+OFICINA_AUTO
+1-) CREATE TABLE cliente (
+  id_cliente INT PRIMARY KEY IDENTITY(1,1),
+  nome VARCHAR(100) NOT NULL,
+  nr_identificacao_civil VARCHAR(20) CONSTRAINT uk_cliente_nr_identificacao_civil UNIQUE,
+  nif CHAR(9) NOT NULL CONSTRAINT uk_cliente_nif UNIQUE,
+  data_nascimento DATE NOT NULL);
+___________________________________________________________________________________________________________________________________________________________________________________________
+2-) CREATE TABLE automóvel (
+  matricula varchar (8) NOT NULL CONSTRAINT ck_automovel_matricula CHECK (
+    matricula LIKE '[0-9][0-9]-[A-Z][A-Z]-[0-9][0-9]'
+    OR matricula LIKE '[0-9][0-9]-[0-9][0-9]-[A-Z][A-Z]'
+    OR matricula LIKE '[A-Z][A-Z]-[0-9][0-9]-[0-9][0-9]'  ),
+    marca varchar (30) NOT NULL,
+    cilindrada INT CONSTRAINT ck_automovel_cilindrada CHECK (cilindrada >= 500    AND cilindrada <= 6000),
+    ano_fabrico int CONSTRAINT ck_automovel_anofabrico CHECK (ano_fabrico >= 1990 AND ano_fabrico <= YEAR(GETDATE())),
+    pvp DECIMAL(10, 2) not null )
+
+ALTER TABLE automovel
+ADD CONSTRAINT PK_automovel_matricula PRIMARY KEY (matricula);
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+3-)CREATE TABLE automovel_cliente (
+  matricula VARCHAR(8) NOT NULL,
+ id_cliente INT NOT NULL,
+  CONSTRAINT PK_automovelcliente PRIMARY KEY (matricula, id_cliente),
+  CONSTRAINT FK_automovelcliente_automovel FOREIGN KEY (matricula) REFERENCES automovel(matricula),
+  CONSTRAINT FK_automovelcliente_cliente FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente))
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+4-)CREATE TABLE revisao (
+matricula VARCHAR(8) NOT NULL,
+data_hora_marcacao DATETIME NOT NULL,
+efetuada VARCHAR(1) NOT NULL DEFAULT 'N'
+  CONSTRAINT ck_revisao_efetuada CHECK (efetuada IN ('S', 'N', 's', 'n')),
+  CONSTRAINT pk_revisao_matricula_dt_hr_marcação PRIMARY KEY (matricula, data_hora_marcacao),
+  CONSTRAINT fk_revisao_matricula FOREIGN KEY (matricula) REFERENCES automovel (matricula));
+___________________________________________________________________________________________________________________________________________________________________________________________
+INSERÇÃO DE DADOS
+
+INSERT INTO cliente (nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+('Sérgio Conceição', '987345', '105098124', '1974-11-15'),
+('António Oliveira', '937587', '104052455', '1952-10-06'),
+('Fernando Santos', NULL, '102000906', '1954-10-10'),
+('Artur Jorge', '7098428', '100829087', '1946-02-13'),
+('Jesualdo Ferreira', '987987987', '107559969', '1946-05-24');
+
+INSERT INTO automovel (matricula, marca, cilindrada, ano_fabrico, pvp) VALUES
+('45-PD-98', 'Mercedes', 2300, 2000, 34050),
+('65-87-GR', 'Nissan', 1700, 2009, 23490.5),
+('42-90-AS', 'Kia', 1300, 2008, 20870),
+('BL-87-23', 'Volkswagen', 1100, 2017, 15600.75),
+('83-QD-27', 'BMW', 2100, 2014, 35600),
+('XO-65-98', 'Toyota', 2100, 2010, 15940);
+
+INSERT INTO revisao (matricula, data_hora_marcacao, efetuada) VALUES
+('65-87-GR', '2018-10-04 09:00:00', 'N'),
+('83-QD-27', '2018-11-04 14:45:00', 'N'),
+('42-90-AS', '2018-10-23 10:50:00', 'N'),
+('XO-65-98', '2018-12-01 18:30:00', ‘N’),
+('65-87-GR', '2018-06-07 10:50:00', 'S'),
+('XO-65-98', '2016-11-22 12:20:00', 'S');
+
+INSERT INTO automovel_cliente (matricula, id_cliente) VALUES ('45-PD-98', 1);
+INSERT INTO automovel_cliente (matricula, id_cliente) VALUES ('65-87-GR', 2);
+INSERT INTO automovel_cliente (matricula, id_cliente) VALUES ('42-90-AS', 3);
+INSERT INTO automovel_cliente (matricula, id_cliente) VALUES ('BL-87-23', 4);
+INSERT INTO automovel_cliente (matricula, id_cliente) VALUES ('83-QD-27', 5);
+INSERT INTO automovel_cliente (matricula, id_cliente) VALUES ('XO-65-98', 1);
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+6.)
+SELECT*FROM automóvel
+
+-- a. Tabela Automovel 
+-- i. Registo(s) com matricula com formato inválido; 
+INSERT INTO automovel (matricula, marca, cilindrada, ano_fabrico, pvp) VALUES
+('45VC88', 'Mercedes', 2300, 2000, 34050);
+The INSERT statement conflicted with the CHECK constraint "ck_automovel_matricula". The conflict occurred in database "oficina_auto", table "dbo.automovel", column 'matricula'.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+-- ii. Registo(s) com matricula existente na tabela. Note que esta situação ocorre sempre com  chaves primárias; 
+INSERT INTO automovel (matricula, marca, cilindrada, ano_fabrico, pvp) VALUES
+('45-PD-98', 'Mercedes', 2300, 2000, 34050);
+Violation of PRIMARY KEY constraint 'PK_automovel_matricula'. Cannot insert duplicate key in object 'dbo.automovel'. The duplicate key value is (45-PD-98).
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+-- iii. Registo(s) com matricula NULL; 
+INSERT INTO automovel (matricula, marca, cilindrada, ano_fabrico, pvp) VALUES
+(NULL, 'Mercedes', 2300, 2000, 34050);
+Cannot insert the value NULL into column 'matricula', table 'oficina_auto.dbo.automovel'; column does not allow nulls. INSERT fails.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+-- iv. Registo(s) com marca NULL; 
+INSERT INTO automovel (matricula, cilindrada, ano_fabrico, pvp) VALUES
+('22-BA-34', 2000, 2010, 22320);
+Cannot insert the value NULL into column 'marca', table 'oficina_auto.dbo.automovel'; column does not allow nulls. INSERT fails.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+-- v. Registo(s) com cilindrada inválida; 
+INSERT INTO automovel (matricula,marca, cilindrada, ano_fabrico, pvp) VALUES
+('25-RA-30','Toyota', 100, 2010, 22320);
+The INSERT statement conflicted with the CHECK constraint "ck_automovel_cilindrada". The conflict occurred in database "oficina_auto", table "dbo.automovel", column 'cilindrada'.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+-- vi.Registo(s) com ano_fabrico inválidos; 
+INSERT INTO automovel (matricula,marca, cilindrada, ano_fabrico, pvp) VALUES
+('25-RD-10','Volvo', 5000, 2100, 22320);
+The INSERT statement conflicted with the CHECK constraint "ck_automovel_anofabrico". The conflict occurred in database "oficina_auto", table "dbo.automovel", column 'ano_fabrico'.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+-- vii. Registo(s) com preco_venda inválidos. 
+INSERT INTO automovel (matricula,marca, cilindrada, ano_fabrico, pvp) VALUES
+('23-FE-22','Volvo', 5000, 2020, 22500,253);
+There are fewer columns in the INSERT statement than values specified in the VALUES clause.
+The number of values in the VALUES clause must match the number of columns specified in the INSERT statement.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+select*from cliente
+-- i. Registo(s) com um id_cliente inexistente na tabela; 
+INSERT INTO cliente (id_cliente,nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+(7,'Ana Silva', '982345', '102598124', '1990-11-15')
+Cannot insert explicit value for identity column in table 'cliente' when IDENTITY_INSERT is set to OFF.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+-- ii. Registo(s) com id_cliente NULL; 
+INSERT INTO cliente (id_cliente, nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+(null, 'João Pedro', '987311', '105098123', '1974-11-15')
+DEFAULT or NULL are not allowed as explicit identity values.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+--iii. Registo(s) com nome NULL; 
+INSERT INTO cliente ( nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+( null, '987911', '108738123', '1985-10-15')
+Cannot insert the value NULL into column 'nome', table 'oficina_auto.dbo.cliente'; column does not allow nulls. INSERT fails.
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+-- iv. Registo(s) com nr_identificacao_civil existente na tabela. Note que esta situação ocorre sempre com campos UNIQUE; 
+INSERT INTO cliente (nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+('André Peq', '987345', '105098252', '1979-02-02')
+Violation of UNIQUE KEY constraint 'uk_cliente_nr_identificacao_civil'. Cannot insert duplicate key in object 'dbo.cliente'. The duplicate key value is (987345).
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+-- v. Registo(s) com nr_identificacao_civil inválido, excluindo o caso da alínea anterior; 
+INSERT INTO cliente (nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+('Sofia Magalhães', '7345', '105098258', '1974-11-15')
+The INSERT statement conflicted with the CHECK constraint "CK_cliente_nr_identificacao_civil". The conflict occurred in database "oficina_auto", table "dbo.cliente", column 'nr_identificacao_civil'.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+-- vi. Registo(s) com nif existente na tabela; 
+INSERT INTO cliente (nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+('Sérgio  Avintes', '987745', '105098124', '1974-11-10')
+Violation of UNIQUE KEY constraint 'uk_cliente_nif'. Cannot insert duplicate key in object 'dbo.cliente'. The duplicate key value is (105098124).
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+-- vii. Registo(s) com nif NULL;
+INSERT INTO cliente (nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+('Sérgio  Avintes', '987745', null, '1974-11-10')
+Msg 515, Level 16, State 2, Line 48
+Cannot insert the value NULL into column 'nif', table 'oficina_auto.dbo.cliente'; column does not allow nulls. INSERT fails.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+-- viii. Registo(s) com nif inválido, excluindo os casos das duas alíneas anteriores; 
+INSERT INTO cliente (nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+('Joana Oliveira', '987845', '78489', '1920-11-10')
+Msg 547, Level 16, State 0, Line 57
+The INSERT statement conflicted with the CHECK constraint "ck_cliente_nif". The conflict occurred in database "oficina_auto", table "dbo.cliente", column 'nif'.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+-- ix. Registo(s) com a_nascimento inválida. 
+INSERT INTO cliente (nome, nr_identificacao_civil, nif, data_nascimento) VALUES
+('Maria Quer', '987785', '105018124', '20-20-2000')
+Msg 547, Level 16, State 0, Line 64
+The INSERT statement conflicted with the CHECK constraint "CK_cliente_data_nascimento_maior_18". The conflict occurred in database "oficina_auto", table "dbo.cliente", column 'data_nascimento'.
+
+Conversion failed when converting date and/or time from character string.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+--c. Tabela Automovel_Cliente 
+
+--i. Registo(s) com chave primária existente na tabela;  
+select *from automovel_cliente
+INSERT INTO automovel_cliente (matricula, id_cliente) VALUES ('45-PD-98', 1);
+
+Violation of PRIMARY KEY constraint 'PK_automovelcliente'. Cannot insert duplicate key in object 'dbo.automovel_cliente'. The duplicate key value is (45-PD-98, 1).
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+--ii. Registo(s) com campo(s) NULL;  
+INSERT INTO automovel_cliente (matricula, id_cliente) VALUES ('45-PD-98', null )
+Cannot insert the value NULL into column 'id_cliente', table 'oficina_auto.dbo.automovel_cliente'; column does not allow nulls. INSERT fails.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+--iii. Registo(s) com id_cliente ou matricula inexistente na tabela Cliente ou Automovel, -- respetivamente. Note que esta situação ocorre sempre com chaves estrangeiras.  
+INSERT INTO automovel_cliente (matricula, id_cliente) VALUES ('45-PD-98', 20)
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK_automovelcliente_cliente". The conflict occurred in database "oficina_auto", table "dbo.cliente", column 'id_cliente'.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+Tabela Revisao 
+select*from revisao
+--i. Registo(s) com chave primária existente na tabela;  
+INSERT INTO revisao (matricula, data_hora_marcacao, efetuada) VALUES
+('65-87-GR', '2018-12-04 10:00:00', 'N')
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+-- ii. Registo(s) com campo(s) NULL na chave primária;
+INSERT INTO revisao (matricula, data_hora_marcacao, efetuada) VALUES
+(null, '2018-10-04 10:00:00', 'N')
+Cannot insert the value NULL into column 'matricula', table 'oficina_auto.dbo.revisao'; column does not allow nulls. INSERT fails.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+--iii.Registo(s) com matricula inexistente na tabela Automovel;
+INSERT INTO revisao (matricula, data_hora_marcacao, efetuada) VALUES
+('55-87-GT', '2018-11-04 08:00:00', 'N')
+The INSERT statement conflicted with the FOREIGN KEY constraint "fk_revisao_matricula". The conflict occurred in database "oficina_auto", table "dbo.automovel", column 'matricula'.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+--v. Registo(s) com o campo efetuada diferente de S ou N; 
+INSERT INTO revisao (matricula, data_hora_marcacao, efetuada) VALUES
+('55-87-GT', '2018-11-04 08:00:00', 'I')
+The INSERT statement conflicted with the CHECK constraint "ck_revisao_efetuada". The conflict occurred in database "oficina_auto", table "dbo.revisao", column 'efetuada'.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+--v. Registo(s) com o campo efetuada a NULL.  
+INSERT INTO revisao (matricula, data_hora_marcacao, efetuada) VALUES
+('55-87-GT', '2018-11-04 08:00:00', null)
+
+Cannot insert the value NULL into column 'efetuada', table 'oficina_auto.dbo.revisao'; column does not allow nulls. INSERT fails.
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+--e. Substituição da chave deve ser feita da seguinte forma:
+--i. Eliminar a restrição de chave primária natural da tabela Revisao; 
+ALTER TABLE revisao
+DROP CONSTRAINT pk_revisao_matricula_dt_hr_marcação;
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+--ii. Adicionar o novo campo id_revisao para armazenar valores inteiros positivos gerados 
+--iii. automaticamente (auto-incrementados); (IDENTITY) 
+ALTER TABLE revisao
+ADD id_revisao INT IDENTITY(1,1) NOT NULL;
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+--Especificar o novo campo id_revisao como chave primária; 
+ALTER TABLE revisao
+ADD CONSTRAINT pk_revisao_id PRIMARY KEY (id_revisao);
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+--iv. Adicionar um registo com a mesma matricula e a data_hora_marcacao de outro registo; 
+INSERT INTO revisao (matricula, data_hora_marcacao, efetuada) VALUES
+('65-87-GR', '2018-11-04 10:00:00', 'N')
+
+--v. Verificar a presença do novo registo na tabela, violando a referida correspondência unívoca entre chaves; 
+select*from revisao
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+-- vi. Eliminar o registo adicionado anteriormente, usando a interface gráfica; 
+--vii. Resolver o problema indicado na alínea 5, adicionando uma restrição que garanta combinações únicas dos campos matricula e a data_hora_marcacao; (UNIQUE)  
+ALTER TABLE revisao
+ADD CONSTRAINT uk_revisao_matricula_data_hora_marcação UNIQUE (matricula, data_hora_marcacao)
+
+___________________________________________________________________________________________________________________________________________________________________________________________
+
+
+--viii. Testar a nova restrição imposta, repetindo a alínea 4;
+INSERT INTO revisao (matricula, data_hora_marcacao, efetuada) VALUES
+('65-87-GR', '2018-11-04 10:00:00', 'N')
+Violation of UNIQUE KEY constraint 'uk_revisao_matricula_data_hora_marcação'. Cannot insert duplicate key in object 'dbo.revisao'. The duplicate key value is (65-87-GR, Nov  4 2018 10:00AM).
